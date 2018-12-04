@@ -1,4 +1,4 @@
-PGraphics mask, content, foreground;
+PGraphics content, foreground;
 float maskScale = 0.9f;
 color bg = color(250);
 
@@ -6,21 +6,23 @@ color colA = color(0, 52, 73);
 color colB = color(158, 226, 187);
 int brushCount = 0;
 
+PShape mask;
+int maskDetail = 150;
+
 ArrayList<PImage> strokes = new ArrayList<PImage>();
-ArrayList<Stem> stems = new ArrayList<Stem>();
 Flower flower;
 
 void setup() {
   size(900,900);
   smooth(16);
-  flower = new Flower(width/2, height/2);
+  flower = new Flower(0, 0);
   
   for(int i = 1; i < 8; i++)
   {
     strokes.add(loadImage("brush" + i + ".png"));  
   } 
   //create our layers!
-  mask = createGraphics(width, height);
+  createMask();
   content = createGraphics(width, height);
   foreground = createGraphics(width, height);
   //get smoothed!
@@ -31,7 +33,7 @@ void setup() {
   content.background(bg);
   for(int i = 0; i < 500; i++)
   {
-    drawBackground();
+    drawContent();
   }
   content.endDraw();
   //form our mask
@@ -44,32 +46,16 @@ void draw() {
   content.beginDraw();
   drawContent();
   content.endDraw();
+  foreground.beginDraw();
+  drawForeground();
+  foreground.endDraw();
   
-  // get an imge out of our content...
-  PImage temp = content.get();
-  //mask image
-  temp.mask(mask);
-  
-  image(temp, 0, 0);
+  image(content.get(), 0, 0);
   image(foreground.get(), 0, 0);
+  shape(mask);
 }
 
 void drawContent() {
-  drawBackground();
-  
-  foreground.beginDraw();
-  foreground.clear();
-  foreground.pushStyle();
-  foreground.fill(255, 255, 0);
-  flower.update(foreground);
-  foreground.popStyle();  
-  foreground.endDraw();
-  
-  //content.image(foreground.get(), 0, 0);
-}
-
-void drawBackground()
-{
   if(brushCount < 2000)
   {
     color thisCol = lerpColor(colA, colB, random(1.0f));
@@ -87,12 +73,41 @@ void drawBackground()
   }  
 }
 
+void drawForeground()
+{
+  foreground.beginDraw();
+  //foreground.clear();
+  foreground.pushStyle();
+  foreground.pushMatrix();
+  
+  foreground.translate(width * maskScale * 0.85f, height * maskScale * 0.85f);
+  foreground.rotate(3* PI/4);
+  flower.update(foreground);
+  
+  foreground.popMatrix();
+  foreground.popStyle();  
+  foreground.endDraw();
+}
+
 void createMask() {
-   // draw a circle as a mask
-  mask.beginDraw();
-  mask.background(0);
+  mask = createShape();
+  mask.beginShape();
+  mask.fill(bg);
   mask.noStroke();
-  mask.fill(255);
-  mask.ellipse(width/2, height/2, width * maskScale, height * maskScale);
-  mask.endDraw();
+  mask.vertex(0, 0);
+  mask.vertex(width, 0);
+  mask.vertex(width, height);
+  mask.vertex(0, height);
+  mask.vertex(0, 0); 
+  // Interior part of shape
+  mask.beginContour();  
+  for(int i = 0; i < maskDetail + 1; i++)
+  {
+    float ang = i * (TWO_PI / (float)maskDetail) + PI/2;
+    float x = cos(TWO_PI - ang) * width * maskScale * 0.5f;
+    float y = sin(TWO_PI - ang) * height * maskScale * 0.5f;
+    mask.vertex(width/2 + x, height/2 + y);
+  }
+  mask.endContour(); 
+  mask.endShape(CLOSE);
 }

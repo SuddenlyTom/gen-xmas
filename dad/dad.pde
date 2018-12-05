@@ -60,15 +60,16 @@ void draw() {
 
 void drawBackground() {
   //background.clear();
-  background.noStroke();
-  for(int y = 0; y < height; y+= 20)
+  
+  background.loadPixels();
+  for(int y = 0; y < height; y++)
   {
-    for(int x = 0; x < width; x+= 20)
+    for(int x = 0; x < width; x++)
     {
-      background.fill(lerpColor(innerbgA, innerbgB, noise(x * 0.005, y * 0.005, prog)));
-      background.ellipse(x, y, 30, 30);
+      background.pixels[y * width + x] = lerpColor(innerbgA, innerbgB, noise(x * 0.005, y * 0.005, prog));
     }
   }
+  background.updatePixels();
 }
 
 void drawForeground()
@@ -97,7 +98,7 @@ void drawForeground()
     foreground.ellipse(width/2, height/2 + i * planetSpacing, planetSize, planetSize);
   }
   
-  prog += 0.02f;
+  prog += 0.03f;
 }
 
 void createMask() {

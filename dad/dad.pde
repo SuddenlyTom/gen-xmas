@@ -74,7 +74,7 @@ void drawBackground() {
 void drawForeground()
 {
   foreground.clear();
-  foreground.strokeWeight(1);
+  foreground.strokeWeight(2);
   foreground.stroke(#F7F7F2);
   float bladeCount = 40;
   float angStep = radians(180.0f / bladeCount * ease(map(sin(prog), -1, 1, 0.7, 1), 2.0f));//0.002f;

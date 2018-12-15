@@ -1,33 +1,16 @@
 PGraphics background, foreground;
 float maskScale = 0.9f;
 color bg = color(250);
-
-color colA = color(156, 170, 207);
-color colB = color(129, 105, 131);
-color colC = color(201, 170, 169);
-int brushCount = 0;
-
-PImage bokehSm, bokehMd, bokehLg;
-ArrayList<Particle> particles;
-
+PImage pallette;
 PShape mask;
 int maskDetail = 150;
 
 void setup() {
   size(900,900);
   smooth(16);
+  pallette = loadImage("pallette.png");
   
-  bokehSm = loadImage("bokehSm.png");
-  bokehMd = loadImage("bokehMd.png");
-  bokehLg = loadImage("bokehLg.png");
-  
-  particles = new ArrayList<Particle>();
-  for(int i = 0; i < 150; i++)
-  {
-    particles.add(new Particle(random(width), random(height * 0.5) + height * 0.5f, (int)random(0, 3)));
-  }
-  
-  //create our layers!
+    //create our layers!
   createMask();
   background = createGraphics(width, height);
   foreground = createGraphics(width, height);
@@ -66,25 +49,93 @@ void drawBackground() {
 
 void drawForeground()
 {
-  foreground.loadPixels();
-  for(int y = 0; y < height; y++)
-  {
-    for(int x = 0; x < width; x++)
-    {
-      color col = lerpColor(colC, colA, map(y, 0, height, 0, 1));
-      foreground.pixels[y * width + x] = col;
-    }
-  }
-  foreground.updatePixels();
+  foreground.clear();
   
-  foreground.blendMode(ADD);
-  for(int i = 0; i < particles.size(); i++)
-  {  
-    
-    particles.get(i).update(foreground);
-    //foreground.image(bokehSm, random(width), random(height));
+  float spacing = 50.0f;
+  float halfStep = spacing * 0.5f;
+  for(float y = 0; y < height; y+= spacing)
+  {
+    for(float x = 0; x < width; x+= spacing)
+    {
+      float thisNoise = getNoise(x, y);
+      float topRightNoise = getNoise(x + halfStep, y - halfStep);
+      float topLeftNoise = getNoise(x - halfStep, y - halfStep);
+      float botRightNoise = getNoise(x + halfStep, y + halfStep);
+      float botLeftNoise = getNoise(x - halfStep, y + halfStep);
+      
+      PVector thisPos = getNoisePos(x, y, spacing);           
+      PVector topRight = getNoisePos(x + halfStep, y - halfStep, spacing);
+      PVector topLeft = getNoisePos(x - halfStep, y - halfStep, spacing);
+      PVector botRight = getNoisePos(x + halfStep, y + halfStep, spacing);
+      PVector botLeft = getNoisePos(x - halfStep, y + halfStep, spacing);
+      float thisAvg = map((thisNoise + topLeftNoise + topRightNoise), 0, 3, 0, 1);
+      color thisCol = getGradient(thisAvg, 1.0f);
+      foreground.stroke(thisCol);
+      foreground.fill(thisCol);
+      foreground.beginShape();
+      foreground.vertex(thisPos.x, thisPos.y);
+      foreground.vertex(topLeft.x, topLeft.y);
+      foreground.vertex(topRight.x, topRight.y);
+      foreground.endShape(CLOSE);     
+      
+      thisAvg = map((thisNoise + topRightNoise + botRightNoise), 0, 3, 0, 1);
+      thisCol = getGradient(thisAvg, 1.0f);
+      foreground.stroke(thisCol);
+      foreground.fill(thisCol);
+      foreground.beginShape();
+      foreground.vertex(thisPos.x, thisPos.y);
+      foreground.vertex(topRight.x, topRight.y);
+      foreground.vertex(botRight.x, botRight.y);
+      foreground.endShape(CLOSE);
+      
+      thisAvg = map((thisNoise + botRightNoise + botLeftNoise), 0, 3, 0, 1);
+      thisCol = getGradient(thisAvg, 1.0f);
+      foreground.stroke(thisCol);
+      foreground.fill(thisCol);
+      foreground.beginShape();
+      foreground.vertex(thisPos.x, thisPos.y);
+      foreground.vertex(botRight.x, botRight.y);
+      foreground.vertex(botLeft.x, botLeft.y);
+      foreground.endShape(CLOSE); 
+      
+      thisAvg = map((thisNoise + botLeftNoise + topLeftNoise), 0, 3, 0, 1);
+      thisCol = getGradient(thisAvg, 1.0f);
+      foreground.stroke(thisCol);
+      foreground.fill(thisCol);
+      foreground.beginShape();
+      foreground.vertex(thisPos.x, thisPos.y);
+      foreground.vertex(botLeft.x, botLeft.y);
+      foreground.vertex(topLeft.x, topLeft.y);      
+      foreground.endShape(CLOSE); 
+    }   
   }
-  foreground.blendMode(NORMAL);
+}
+
+color getGradient(float inVal, float mult)
+{
+  float in = ease(inVal, 2.5);
+  int sampleVal = (int)map(in, 0, 1, 0, pallette.pixels.length);
+  color col = color(pallette.pixels[sampleVal]);
+  return col;
+}
+
+float getNoise(float x, float y)
+{
+  float noiseScale = 0.02f;
+  float timeScale = 0.3f;
+  return noise(x * noiseScale, y * noiseScale, frameCount * timeScale * noiseScale);
+}
+
+PVector getNoisePos(float x, float y, float spacing)
+{
+  float wanderScale = 0.3f;
+  
+  float ang = getNoise(x, y);
+   ang = map(ang, 0, 1.0f, 0, TWO_PI);
+   float newX = cos(ang) * spacing * wanderScale;
+   float newY = sin(ang) * spacing * wanderScale;
+   
+   return new PVector(x + newX, y + newY);
 }
 
 void createMask() {
@@ -108,4 +159,11 @@ void createMask() {
   }
   mask.endContour(); 
   mask.endShape(CLOSE);
+}
+
+float ease(float p, float g) {
+  if (p < 0.5) 
+    return 0.5 * pow(2*p, g);
+  else
+    return 1 - 0.5 * pow(2*(1 - p), g);
 }

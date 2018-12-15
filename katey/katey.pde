@@ -1,15 +1,20 @@
 PGraphics background, foreground;
 float maskScale = 0.9f;
 color bg = color(250);
-
+color[] colors;
 PImage dirt;
-
+float rSpeed = 0.002f;
 PShape mask;
 int maskDetail = 150;
 
 void setup() {
   size(900,900);
   smooth(16);
+  colors = new color[3];
+  colors[0] = color( 235, 89, 87 );
+  colors[1] = color( 255, 245, 90 );
+  colors[2] = color( 136, 228, 188 );
+  
   dirt = loadImage("dirt.png");
   dirt.resize(width,height);
   //create our layers!
@@ -40,65 +45,63 @@ void draw() {
   drawForeground();
   foreground.endDraw();
     
+  
   image(background.get(), 0, 0);
   image(foreground.get(), 0, 0);
   blendMode(MULTIPLY);
   tint(255, 150);
+  pushMatrix();
+  translate(width/2, height/2);
+  rotate(frameCount * rSpeed);
+  imageMode(CENTER);
   image(dirt, 0, 0);
   blendMode(BLEND);
   tint(255, 255);
+  imageMode(CORNERS);
+  popMatrix();
   shape(mask);
 }
 
+void keyPressed()
+{
+  rs -= 0.01f;
+  println(rs);
+}
+
+float rs = 0.26f;
+float prog = 0;
 void drawBackground() {
-  float distScaleSpeed = 48f;
-  float globalScale = 1f;
   background.translate(width/2, height/2);
+  background.rotate(frameCount * rSpeed);
   background.background(255, 180);
   background.noStroke();
-  background.fill(233, 86, 81);
-  
-  for(float i = 0; i <  TWO_PI*2.0f * globalScale; i += 0.01f * globalScale)
+ 
+  float ellipseStep = 0.02f;
+  float a = 1.3f;
+  for(int i = 0; i < 3; i++)
   {
-    float d = i * distScaleSpeed * globalScale;
-    float scale = map(i, 0, TWO_PI*2.0f * globalScale, 0, 100.0f * globalScale);
-    float x = cos(i) * d;
-    float y = sin(i) * d;
-    background.ellipse(x, y, scale, scale);
+    background.fill(colors[i]);
+    for(float t = 0; t < TWO_PI * prog; t+= ellipseStep)
+    {
+      float r = pow(a, i + t);
+      background.ellipse(cos(t) * r, sin(t) * r, r * rs, r * rs);
+    }    
   }
-  
-  background.fill(232, 223, 77);
-  for(float i = 0; i <  TWO_PI*2.0f * globalScale; i += 0.01f * globalScale)
-  {
-    float d = i * distScaleSpeed * 0.85 * globalScale;
-    float scale = map(i, 0, TWO_PI*2.0f * globalScale, 0, 100.0f * globalScale);
-    float x = cos(i) * d;
-    float y = sin(i) * d;
-    background.ellipse(x, y, scale, scale);
-  }
-  
-  background.fill(131, 219, 174);
-  for(float i = 0; i <  TWO_PI*3.0f * globalScale; i += 0.01f * globalScale)
-  {
-    float d = i * distScaleSpeed * 0.85 *0.88 * globalScale;
-    float scale = map(i, 0, TWO_PI*2.0f * globalScale, 0, 80.0f * globalScale);
-    float x = cos(i) * d;
-    float y = sin(i) * d;
-    background.ellipse(x, y, scale, scale);
-  }
+  prog += 0.005;
 }
 
 void drawForeground()
 {
-  
+    foreground.translate(width/2, height/2);
+    foreground.rotate(frameCount * rSpeed);
     foreground.background(bg, 0);
-    foreground.strokeWeight(3);
+    foreground.strokeWeight(5);
     foreground.stroke(210, 180, 58, 80);
   for(float i = 0; i < TWO_PI; i += TWO_PI/28)
   {
-    float x = cos(i) * width*maskScale + width/2;
-    float y = sin(i) * height*maskScale + height/2;
-    foreground.line(width/2, height/2, x, y);
+    float x = cos(i) * width*maskScale;
+    float y = sin(i) * height*maskScale;
+    foreground.line(0, 0, x, y);
   }
 
 }

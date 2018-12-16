@@ -9,50 +9,88 @@ int brushCount = 0;
 PShape mask;
 int maskDetail = 150;
 
+float x, y, z, tt, r;
+float X, Y, Z, R;
+int N = 1600;
+float age;
+float rotSpeed;
+float x_, y_, z_;
+
+int samplesPerFrame = 4;
+int numFrames = 280;        
+float shutterAngle = .5;
+float t;
+
+boolean recording = false;
+
 void setup() {
-  size(900,900);
-  smooth(16);
-  
-  //create our layers!
-  createMask();
-  background = createGraphics(width, height);
-  foreground = createGraphics(width, height);
-  //get smoothed!
-  foreground.smooth(16);
-  background.smooth(16);
-  //fill a base amount
-  background.beginDraw();
-  background.background(bg);
-  drawBackground();
-  background.endDraw();
+  size(1000,1000, P3D);
+  r = width/2*maskScale*0.7;
   
   //form our mask
   createMask();
+  
+  pixelDensity(1);
+  smooth(8);
+  rectMode(CENTER);
+  
+  noStroke();
+  sphereDetail(8);
 }
 
 void draw() {
   background(bg);
-  
-  background.beginDraw();
-  drawBackground();
-  background.endDraw();
-  
-  foreground.beginDraw();
   drawForeground();
-  foreground.endDraw();
-  
-  image(background.get(), 0, 0);
-  image(foreground.get(), 0, 0);
   shape(mask);
-}
-
-void drawBackground() {
-
+  saveFrame("output.png");
+  noLoop();
 }
 
 void drawForeground()
 {
- 
+  background(0); 
+  pushMatrix();
+  pushStyle();
+  translate(width/2, height/2);
+  randomSeed(1);
+  for (int i=0; i<N; i++)
+  {
+    light();
+  }
+  popMatrix();
+  popStyle();
+  t = map(frameCount-1 + shutterAngle/samplesPerFrame, 0, numFrames, 0, 1);
+
+}
+
+void light() {
+  rotSpeed = random(-1, -.2);
+  
+  X = randomGaussian();
+  Y = randomGaussian();
+  Z = randomGaussian();
+  R = dist(0, 0, 0, X, Y, Z);
+  x_ = X*r/R;
+  y_ = Y*r/R;
+  z_ = Z*r/R;
+
+  age = (t + 1000 - .0016*y + randomGaussian()*.18) % 1;
+  age = c01(1.5*age);
+
+  x = x_*cos(rotSpeed*age) + z_*sin(rotSpeed*age);
+  y = y_;
+  z = z_*cos(rotSpeed*age) - x_*sin(rotSpeed*age);
+  
+  pushMatrix();
+  pushStyle();
+  translate(x, y, z);
+  color col = lerpColor(color(255, 0, 0), color(255, 255, 0), random(0, 1.0f));
+  float zDist = map(modelZ(x, y, z), -r, r, 0, 255);
+  float f = map(cos(TWO_PI*age), 1, -1, 0, zDist);
+  fill(color(red(col), green(col), blue(col), f));
+  sphere(map(cos(TWO_PI*age), 1, -1, 0, 6));
+  popMatrix();
+  popStyle();
 }
 
 void createMask() {
@@ -76,4 +114,8 @@ void createMask() {
   }
   mask.endContour(); 
   mask.endShape(CLOSE);
+}
+
+float c01(float g) {
+  return constrain(g, 0, 1);
 }
